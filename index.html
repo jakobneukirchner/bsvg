@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BSVG Ansagen Generator</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>Ansagen Generator</h1>
+
+  <label>Linie:</label>
+  <select id="line">
+    <option value="">(Zug)</option>
+    <option value="1">1</option>
+    <option value="2">2</option>
+    <option value="3">3</option>
+    <option value="4">4</option>
+    <option value="5">5</option>
+    <option value="10">10</option>
+  </select>
+
+  <label>Ziel:</label>
+  <select id="destination"></select>
+
+  <label>Via-Haltestelle (optional):</label>
+  <select id="via"></select>
+
+  <label><input type="checkbox" id="enableSpecial" /> Sonderansage hinzufügen</label>
+  <select id="special" disabled></select>
+
+  <button onclick="generateAnnouncement()">Ansage abspielen</button>
+  <button onclick="playSpecialOnly()">Nur Sonderansage</button>
+
+  <script src="script.js"></script>
+</body>
+</html>
