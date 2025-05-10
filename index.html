@@ -2,29 +2,44 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Ansagen Generator</title>
+  <title>Ansagen-Generator</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>BSVG Ansagen Generator</h1>
-
-  <label for="line">Liniennummer:</label>
-  <input type="text" id="line" placeholder="z. B. 1"><br><br>
-
-  <label for="destination">Zielhaltestelle:</label>
-  <select id="destination"></select><br><br>
-
-  <label for="via">Via-Haltestelle (optional):</label>
-  <select id="via"></select><br><br>
-
-  <input type="checkbox" id="enableSpecial">
-  <label for="enableSpecial">Sonderansage aktivieren</label><br>
-
-  <label for="special">Sonderansage:</label>
-  <select id="special" disabled></select><br><br>
-
-  <button onclick="generateAnnouncement()">Ansage abspielen</button>
-  <button onclick="playSpecialOnly()">Nur Sonderansage</button>
-
+  <h1>Ansagen-Generator</h1>
+  
+  <label for="combo_line">Liniennummer:</label>
+  <select id="combo_line">
+    <option value="">(keine)</option>
+    <option value="1">1</option>
+    <option value="2">2</option>
+    <option value="3">3</option>
+    <option value="4">4</option>
+    <option value="5">5</option>
+    <option value="10">10</option>
+  </select>
+  <br><br>
+  
+  <label for="combo_destination">Zielhaltestelle:</label>
+  <select id="combo_destination"></select>
+  <br><br>
+  
+  <label for="combo_via">Via-Haltestelle (optional):</label>
+  <select id="combo_via"></select>
+  <br><br>
+  
+  <input type="checkbox" id="check_special">
+  <label for="check_special">Sonderansage hinzufügen</label>
+  <select id="combo_special"></select>
+  <br><br>
+  
+  <button onclick="generateAndPlay()">Ansage generieren und abspielen</button>
+  <button onclick="playSpecialOnly()">Nur Sonderansage abspielen</button>
+  
+  <p id="output"></p>
+  
+  <audio id="audioPlayer"></audio>
+  
   <script src="script.js"></script>
 </body>
 </html>
