@@ -1,4 +1,5 @@
-const basePath = 'audio/';
+// Pfad zu den Audiodateien auf GitHub (raw)
+const basePath = 'https://raw.githubusercontent.com/jakobneukirchner/bsvg/main/audio/';
 
 const destinationSelect = document.getElementById('destination');
 const viaSelect = document.getElementById('via');
@@ -15,7 +16,7 @@ window.onload = async () => {
 };
 
 async function loadHaltestellen() {
-  const ziele = ["heidberg", "hauptbahnhof", "broitzem"]; // Diese Liste anpassen!
+  const ziele = ["heidberg", "hauptbahnhof", "broitzem"]; // Anpassen, wenn du mehr hast
   ziele.forEach(name => {
     let opt = new Option(name, name);
     destinationSelect.add(opt.cloneNode(true));
@@ -24,7 +25,7 @@ async function loadHaltestellen() {
 }
 
 async function loadSonderansagen() {
-  const sonder = ["fahrt_auf_sicht.mp3", "wagen_defekt.mp3"]; // Diese Liste anpassen!
+  const sonder = ["fahrt_auf_sicht.mp3", "wagen_defekt.mp3"]; // Auch hier ggf. anpassen
   sonder.forEach(name => specialSelect.add(new Option(name, name)));
 }
 
