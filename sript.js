@@ -16,7 +16,7 @@ window.onload = () => {
 };
 
 function loadHaltestellen() {
-  const haltestellen = ["heidberg", "hauptbahnhof", "broitzem"]; // Anpassen
+  const haltestellen = ["heidberg.mp3", "haup.mp3", "broitzem.mp3"]; // Anpassen
   haltestellen.forEach(name => {
     destinationSelect.add(new Option(name, name));
     viaSelect.add(new Option(name, name));
@@ -24,7 +24,7 @@ function loadHaltestellen() {
 }
 
 function loadSonderansagen() {
-  const sonderansagen = ["fahrt_auf_sicht.mp3", "wagen_defekt.mp3"]; // Anpassen
+  const sonderansagen = ["ne.mp3", "sonder_ne.mp3"]; // Anpassen
   sonderansagen.forEach(name => {
     specialSelect.add(new Option(name, name));
   });
