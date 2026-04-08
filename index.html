@@ -49,9 +49,9 @@
       </div>
 
       <div class="form-field">
-        <label class="form-label" for="combo_line">Liniennummer</label>
+        <label class="form-label" for="line">Liniennummer</label>
         <div class="select-wrapper">
-          <select id="combo_line" class="form-select">
+          <select id="line" class="form-select">
             <option value="">(keine)</option>
             <option value="1">1</option>
             <option value="2">2</option>
@@ -65,33 +65,37 @@
       </div>
 
       <div class="form-field">
-        <label class="form-label" for="combo_destination">Zielhaltestelle</label>
+        <label class="form-label" for="destination">Zielhaltestelle</label>
         <div class="select-wrapper">
-          <select id="combo_destination" class="form-select"></select>
+          <select id="destination" class="form-select"></select>
           <span class="material-icons select-arrow">expand_more</span>
         </div>
       </div>
 
+      <!-- Via: mehrere Haltestellen -->
       <div class="form-field">
-        <label class="form-label" for="combo_via">Via-Haltestelle (optional)</label>
-        <div class="select-wrapper">
-          <select id="combo_via" class="form-select"></select>
-          <span class="material-icons select-arrow">expand_more</span>
+        <label class="form-label">Via-Haltestellen (optional)</label>
+        <div class="via-container" id="via-container">
+          <!-- Via-Zeilen werden per JS eingefügt -->
         </div>
+        <button class="btn-add-via" id="btn-add-via" type="button">
+          <span class="material-icons">add</span>
+          Via-Haltestelle hinzufügen
+        </button>
       </div>
 
       <div class="form-field form-field--row">
         <label class="md-checkbox">
-          <input type="checkbox" id="check_special">
+          <input type="checkbox" id="enableSpecial">
           <span class="md-checkbox-box"></span>
           <span class="md-checkbox-label">Sonderansage hinzufügen</span>
         </label>
       </div>
 
       <div class="form-field">
-        <label class="form-label" for="combo_special">Sonderansage</label>
+        <label class="form-label" for="special">Sonderansage</label>
         <div class="select-wrapper">
-          <select id="combo_special" class="form-select" disabled></select>
+          <select id="special" class="form-select" disabled></select>
           <span class="material-icons select-arrow">expand_more</span>
         </div>
       </div>
@@ -115,15 +119,5 @@
   <audio id="audioPlayer"></audio>
 
   <script src="sript.js"></script>
-  <script>
-    document.getElementById('check_special').addEventListener('change', function() {
-      document.getElementById('combo_special').disabled = !this.checked;
-    });
-
-    function playQuick(src) {
-      const a = new Audio(src);
-      a.play();
-    }
-  </script>
 </body>
 </html>

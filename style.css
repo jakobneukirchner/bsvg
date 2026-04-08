@@ -209,6 +209,77 @@ body {
   font-size: 20px;
 }
 
+/* ===== Via Multi-Haltestellen ===== */
+.via-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.via-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.via-select-wrapper {
+  flex: 1;
+}
+
+.via-select {
+  width: 100%;
+}
+
+.btn-remove-via {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  background: #fce4ec;
+  color: #b71c1c;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 0.18s ease;
+}
+
+.btn-remove-via:hover {
+  background: #f48fb1;
+}
+
+.btn-remove-via .material-icons {
+  font-size: 18px;
+}
+
+.btn-add-via {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1.5px dashed #90caf9;
+  border-radius: 8px;
+  color: #1565c0;
+  font-family: 'Roboto', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 14px;
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.18s ease, border-color 0.18s ease;
+}
+
+.btn-add-via:hover {
+  background-color: #e3f2fd;
+  border-color: #1565c0;
+}
+
+.btn-add-via .material-icons {
+  font-size: 20px;
+}
+
 /* ===== Checkbox ===== */
 .md-checkbox {
   display: flex;
