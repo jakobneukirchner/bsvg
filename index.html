@@ -2,44 +2,128 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ansagen-Generator</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 <body>
-  <h1>Ansagen-Generator</h1>
-  
-  <label for="combo_line">Liniennummer:</label>
-  <select id="combo_line">
-    <option value="">(keine)</option>
-    <option value="1">1</option>
-    <option value="2">2</option>
-    <option value="3">3</option>
-    <option value="4">4</option>
-    <option value="5">5</option>
-    <option value="10">10</option>
-  </select>
-  <br><br>
-  
-  <label for="combo_destination">Zielhaltestelle:</label>
-  <select id="combo_destination"></select>
-  <br><br>
-  
-  <label for="combo_via">Via-Haltestelle (optional):</label>
-  <select id="combo_via"></select>
-  <br><br>
-  
-  <input type="checkbox" id="check_special">
-  <label for="check_special">Sonderansage hinzufügen</label>
-  <select id="combo_special"></select>
-  <br><br>
-  
-  <button onclick="generateAndPlay()">Ansage generieren und abspielen</button>
-  <button onclick="playSpecialOnly()">Nur Sonderansage abspielen</button>
-  
-  <p id="output"></p>
-  
+
+  <div class="app-bar">
+    <span class="material-icons app-bar-icon">campaign</span>
+    <span class="app-bar-title">Ansagen-Generator</span>
+  </div>
+
+  <div class="container">
+
+    <!-- Schnellansagen -->
+    <div class="card">
+      <div class="card-header">
+        <span class="material-icons card-header-icon">flash_on</span>
+        <span class="card-header-title">Schnellansagen</span>
+      </div>
+      <div class="quick-buttons">
+        <button class="btn-quick" onclick="playQuick('audio/hinweise/einsteigen.mp3')">
+          <span class="material-icons">login</span>
+          <span>Einsteigen bitte</span>
+        </button>
+        <button class="btn-quick btn-quick--warn" onclick="playQuick('audio/hinweise/zurueckbleiben.mp3')">
+          <span class="material-icons">warning</span>
+          <span>Zurückbleiben bitte</span>
+        </button>
+        <button class="btn-quick btn-quick--danger" onclick="playQuick('audio/hinweise/abfahrt.mp3')">
+          <span class="material-icons">directions_railway</span>
+          <span>Halten Sie Abstand – Zug fährt ab</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Ansage Generator -->
+    <div class="card">
+      <div class="card-header">
+        <span class="material-icons card-header-icon">settings_voice</span>
+        <span class="card-header-title">Ansage generieren</span>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" for="combo_line">Liniennummer</label>
+        <div class="select-wrapper">
+          <select id="combo_line" class="form-select">
+            <option value="">(keine)</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="10">10</option>
+          </select>
+          <span class="material-icons select-arrow">expand_more</span>
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" for="combo_destination">Zielhaltestelle</label>
+        <div class="select-wrapper">
+          <select id="combo_destination" class="form-select"></select>
+          <span class="material-icons select-arrow">expand_more</span>
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" for="combo_via">Via-Haltestelle (optional)</label>
+        <div class="select-wrapper">
+          <select id="combo_via" class="form-select"></select>
+          <span class="material-icons select-arrow">expand_more</span>
+        </div>
+      </div>
+
+      <div class="form-field form-field--row">
+        <label class="md-checkbox">
+          <input type="checkbox" id="check_special">
+          <span class="md-checkbox-box"></span>
+          <span class="md-checkbox-label">Sonderansage hinzufügen</span>
+        </label>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" for="combo_special">Sonderansage</label>
+        <div class="select-wrapper">
+          <select id="combo_special" class="form-select" disabled></select>
+          <span class="material-icons select-arrow">expand_more</span>
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button class="btn-primary" onclick="generateAndPlay()">
+          <span class="material-icons">play_arrow</span>
+          Ansage abspielen
+        </button>
+        <button class="btn-secondary" onclick="playSpecialOnly()">
+          <span class="material-icons">volume_up</span>
+          Nur Sonderansage
+        </button>
+      </div>
+
+      <p id="output" class="output-text"></p>
+    </div>
+
+  </div>
+
   <audio id="audioPlayer"></audio>
-  
-  <script src="script.js"></script>
+
+  <script src="sript.js"></script>
+  <script>
+    document.getElementById('check_special').addEventListener('change', function() {
+      document.getElementById('combo_special').disabled = !this.checked;
+    });
+
+    function playQuick(src) {
+      const a = new Audio(src);
+      a.play();
+    }
+  </script>
 </body>
 </html>
