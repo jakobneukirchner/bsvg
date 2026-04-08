@@ -1,13 +1,21 @@
 const basePath = 'audio/';
 
 const destinationSelect = document.getElementById('destination');
-const specialSelect = document.getElementById('special');
-const enableSpecial = document.getElementById('enableSpecial');
-const viaContainer = document.getElementById('via-container');
-const btnAddVia = document.getElementById('btn-add-via');
+const specialSelect     = document.getElementById('special');
+const enableSpecial     = document.getElementById('enableSpecial');
+const viaContainer      = document.getElementById('via-container');
+const btnAddVia         = document.getElementById('btn-add-via');
 
-// Liste aller Haltestellen (befüllt durch loadHaltestellen)
 let haltestellen = [];
+
+// Hilfsfunktion: Dateiname -> lesbarer Titel
+// z.B. "fahrt_auf_sicht" -> "Fahrt auf Sicht"
+function toLabel(filename) {
+  return filename
+    .replace(/\.mp3$/i, '')
+    .replace(/[_-]/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase());
+}
 
 enableSpecial.addEventListener('change', () => {
   specialSelect.disabled = !enableSpecial.checked;
@@ -20,18 +28,19 @@ window.onload = () => {
 };
 
 function loadHaltestellen() {
-  // ✏️ Hier alle mp3-Dateinamen (ohne .mp3) aus /audio/Ziele eintragen
+  // ✏️ Dateinamen (ohne .mp3) aus /audio/Ziele eintragen
   haltestellen = ["heidberg", "hauptbahnhof", "broitzem"];
 
   haltestellen.forEach(name => {
-    destinationSelect.add(new Option(name, name));
+    destinationSelect.add(new Option(toLabel(name), name));
   });
 }
 
 function loadSonderansagen() {
-  const sonderansagen = ["fahrt_auf_sicht.mp3", "wagen_defekt.mp3"];
+  // ✏️ Dateinamen (ohne .mp3) aus /audio/Hinweise eintragen
+  const sonderansagen = ["fahrt_auf_sicht", "wagen_defekt"];
   sonderansagen.forEach(name => {
-    specialSelect.add(new Option(name, name));
+    specialSelect.add(new Option(toLabel(name), name));
   });
 }
 
@@ -40,9 +49,8 @@ function loadSonderansagen() {
 function buildViaSelect() {
   const sel = document.createElement('select');
   sel.className = 'form-select via-select';
-  const emptyOpt = new Option('(keine)', '');
-  sel.add(emptyOpt);
-  haltestellen.forEach(name => sel.add(new Option(name, name)));
+  sel.add(new Option('(keine)', ''));
+  haltestellen.forEach(name => sel.add(new Option(toLabel(name), name)));
   return sel;
 }
 
@@ -78,34 +86,82 @@ function getViaValues() {
     .filter(v => v !== '');
 }
 
-// ===== Audio =====
+// ===== Audio: Preload & Sequenz =====
 
-function playAudioSequence(files) {
-  let index = 0;
-  const audio = new Audio();
+/**
+ * Lädt alle Audiodateien in den Speicher und spielt sie
+ * danach der Reihe nach ab (flüssig, kein Nachladen).
+ */
+function preloadAndPlay(files) {
+  if (files.length === 0) return;
 
-  function playNext() {
-    if (index >= files.length) return;
-    audio.src = files[index];
-    audio.play().catch(() => {});
-  }
+  const outputEl = document.getElementById('output');
+  outputEl.textContent = 'Lade Ansage ...';
 
-  audio.addEventListener('ended', () => {
-    index++;
-    playNext();
+  // Alle Dateien als Audio-Objekte vorladen
+  const audios = files.map(src => {
+    const a = new Audio();
+    a.preload = 'auto';
+    a.src = src;
+    return a;
   });
 
-  playNext();
+  // Warten bis alle canplaythrough-Events gefeuert haben
+  let loaded = 0;
+  const total = audios.length;
+
+  function onReady() {
+    loaded++;
+    if (loaded >= total) {
+      outputEl.textContent = 'Wiedergabe ...';
+      playSequence(audios, () => {
+        outputEl.textContent = '';
+      });
+    }
+  }
+
+  audios.forEach(a => {
+    if (a.readyState >= 3) {
+      onReady();
+    } else {
+      a.addEventListener('canplaythrough', onReady, { once: true });
+      // Fallback: nach 3 Sekunden trotzdem starten
+      a.addEventListener('error', onReady, { once: true });
+    }
+  });
 }
+
+function playSequence(audios, onDone) {
+  let index = 0;
+
+  function next() {
+    if (index >= audios.length) {
+      if (onDone) onDone();
+      return;
+    }
+    const a = audios[index];
+    a.currentTime = 0;
+    a.play().catch(() => {});
+    a.addEventListener('ended', () => {
+      index++;
+      next();
+    }, { once: true });
+  }
+
+  next();
+}
+
+// ===== Ansage aufbauen =====
 
 function generateAndPlay() {
   const files = [];
 
-  const line = document.getElementById('line').value;
+  const line        = document.getElementById('line').value;
   const destination = destinationSelect.value;
-  const viaList = getViaValues();
-  const special = specialSelect.value;
+  const viaList     = getViaValues();
+  const special     = specialSelect.value;
 
+  // Linie oder "Zug"
   if (line) {
     files.push(`${basePath}Fragmente/linie.mp3`);
     files.push(`${basePath}Nummern/line_number_end/${line}.mp3`);
@@ -113,23 +169,30 @@ function generateAndPlay() {
     files.push(`${basePath}Fragmente/zug.mp3`);
   }
 
+  // Ziel
   if (destination) {
     files.push(`${basePath}Fragmente/nach.mp3`);
     files.push(`${basePath}Ziele/${destination}.mp3`);
-
-    if (viaList.length > 0) {
-      files.push(`${basePath}Fragmente/ueber.mp3`);
-      viaList.forEach(via => {
-        files.push(`${basePath}Ziele/${via}.mp3`);
-      });
-    }
   }
 
+  // Via-Haltestellen mit "und" vor der letzten
+  if (viaList.length > 0) {
+    files.push(`${basePath}Fragmente/ueber.mp3`);
+    viaList.forEach((via, i) => {
+      files.push(`${basePath}Ziele/${via}.mp3`);
+      // "und" zwischen vorletzter und letzter Station
+      if (i < viaList.length - 1) {
+        files.push(`${basePath}Fragmente/und.mp3`);
+      }
+    });
+  }
+
+  // Sonderansage
   if (enableSpecial.checked && special) {
-    files.push(`${basePath}Hinweise/${special}`);
+    files.push(`${basePath}Hinweise/${special}.mp3`);
   }
 
-  playAudioSequence(files);
+  preloadAndPlay(files);
 }
 
 function playSpecialOnly() {
@@ -138,10 +201,9 @@ function playSpecialOnly() {
     alert('Bitte eine Sonderansage wählen');
     return;
   }
-  playAudioSequence([`${basePath}Hinweise/${special}`]);
+  preloadAndPlay([`${basePath}Hinweise/${special}.mp3`]);
 }
 
 function playQuick(src) {
-  const a = new Audio(src);
-  a.play().catch(() => {});
+  preloadAndPlay([src]);
 }
