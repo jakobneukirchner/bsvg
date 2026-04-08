@@ -7,10 +7,8 @@ const enableSpecial     = document.getElementById('enableSpecial');
 const viaContainer      = document.getElementById('via-container');
 const btnAddVia         = document.getElementById('btn-add-via');
 
-// Alle geladenen Haltestellen-Dateinamen (ohne .mp3)
 let haltestellen = [];
 
-// Hilfsfunktion: Dateiname ohne Extension -> lesbarer Label
 function toLabel(name) {
   return name
     .replace(/\.mp3$/i, '')
@@ -27,7 +25,6 @@ window.onload = async () => {
   await Promise.all([loadHaltestellen(), loadSonderansagen()]);
 };
 
-// Lädt alle .mp3 aus audio/Ziele per GitHub Contents API
 async function loadHaltestellen() {
   try {
     const res = await fetch(GITHUB_API + 'audio/Ziele');
@@ -37,7 +34,6 @@ async function loadHaltestellen() {
       .map(f => f.name.replace(/\.mp3$/i, ''))
       .sort((a, b) => toLabel(a).localeCompare(toLabel(b), 'de'));
 
-    // Leere Option als erstes
     destinationSelect.innerHTML = '<option value="">(keine)</option>';
     haltestellen.forEach(name => {
       destinationSelect.add(new Option(toLabel(name), name));
@@ -47,8 +43,6 @@ async function loadHaltestellen() {
   }
 }
 
-// Lädt alle .mp3 aus audio/Hinweise per GitHub Contents API
-// (Schnellansagen einsteigen/zurueckbleiben/abfahrt werden ausgeschlossen)
 async function loadSonderansagen() {
   const SCHNELLANSAGEN = ['einsteigen', 'zurueckbleiben', 'abfahrt'];
   try {
@@ -72,7 +66,7 @@ async function loadSonderansagen() {
   }
 }
 
-// ===== Via-Haltestellen (dynamisch, mehrere) =====
+// ===== Via-Haltestellen =====
 
 function buildViaSelect() {
   const sel = document.createElement('select');
@@ -130,11 +124,9 @@ function preloadAndPlay(files) {
   });
 
   let loaded = 0;
-  const total = audios.length;
-
   function onReady() {
     loaded++;
-    if (loaded >= total) {
+    if (loaded >= audios.length) {
       outputEl.textContent = 'Wiedergabe ...';
       playSequence(audios, () => { outputEl.textContent = ''; });
     }
@@ -172,6 +164,7 @@ function generateAndPlay() {
   const viaList     = getViaValues();
   const special     = specialSelect.value;
 
+  // Linie oder "Zug"
   if (line) {
     files.push(`${basePath}Fragmente/linie.mp3`);
     files.push(`${basePath}Nummern/line_number_end/${line}.mp3`);
@@ -179,22 +172,20 @@ function generateAndPlay() {
     files.push(`${basePath}Fragmente/zug.mp3`);
   }
 
+  // Ziel
   if (destination) {
     files.push(`${basePath}Fragmente/nach.mp3`);
     files.push(`${basePath}Ziele/${destination}.mp3`);
   }
 
-  if (viaList.length > 0) {
+  // Via: vor jeder Station "ueber.mp3" wiederholen
+  // Ergebnis: "... ueber StationA ueber StationB ueber StationC"
+  viaList.forEach(via => {
     files.push(`${basePath}Fragmente/ueber.mp3`);
-    viaList.forEach((via, i) => {
-      files.push(`${basePath}Ziele/${via}.mp3`);
-      // "und" zwischen den Stationen, falls vorhanden
-      if (i < viaList.length - 1) {
-        files.push(`${basePath}Fragmente/und.mp3`);
-      }
-    });
-  }
+    files.push(`${basePath}Ziele/${via}.mp3`);
+  });
 
+  // Sonderansage
   if (enableSpecial.checked && special) {
     files.push(`${basePath}Hinweise/${special}.mp3`);
   }
