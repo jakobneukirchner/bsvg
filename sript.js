@@ -1,4 +1,5 @@
 const basePath = 'audio/';
+const GITHUB_API = 'https://api.github.com/repos/jakobneukirchner/bsvg/contents/';
 
 const destinationSelect = document.getElementById('destination');
 const specialSelect     = document.getElementById('special');
@@ -6,12 +7,12 @@ const enableSpecial     = document.getElementById('enableSpecial');
 const viaContainer      = document.getElementById('via-container');
 const btnAddVia         = document.getElementById('btn-add-via');
 
+// Alle geladenen Haltestellen-Dateinamen (ohne .mp3)
 let haltestellen = [];
 
-// Hilfsfunktion: Dateiname -> lesbarer Titel
-// z.B. "fahrt_auf_sicht" -> "Fahrt auf Sicht"
-function toLabel(filename) {
-  return filename
+// Hilfsfunktion: Dateiname ohne Extension -> lesbarer Label
+function toLabel(name) {
+  return name
     .replace(/\.mp3$/i, '')
     .replace(/[_-]/g, ' ')
     .replace(/\b\w/g, c => c.toUpperCase());
@@ -21,27 +22,54 @@ enableSpecial.addEventListener('change', () => {
   specialSelect.disabled = !enableSpecial.checked;
 });
 
-window.onload = () => {
-  loadHaltestellen();
-  loadSonderansagen();
+window.onload = async () => {
   btnAddVia.addEventListener('click', addViaRow);
+  await Promise.all([loadHaltestellen(), loadSonderansagen()]);
 };
 
-function loadHaltestellen() {
-  // ✏️ Dateinamen (ohne .mp3) aus /audio/Ziele eintragen
-  haltestellen = ["heidberg", "hauptbahnhof", "broitzem"];
+// Lädt alle .mp3 aus audio/Ziele per GitHub Contents API
+async function loadHaltestellen() {
+  try {
+    const res = await fetch(GITHUB_API + 'audio/Ziele');
+    const files = await res.json();
+    haltestellen = files
+      .filter(f => f.type === 'file' && f.name.toLowerCase().endsWith('.mp3'))
+      .map(f => f.name.replace(/\.mp3$/i, ''))
+      .sort((a, b) => toLabel(a).localeCompare(toLabel(b), 'de'));
 
-  haltestellen.forEach(name => {
-    destinationSelect.add(new Option(toLabel(name), name));
-  });
+    // Leere Option als erstes
+    destinationSelect.innerHTML = '<option value="">(keine)</option>';
+    haltestellen.forEach(name => {
+      destinationSelect.add(new Option(toLabel(name), name));
+    });
+  } catch (e) {
+    console.error('Fehler beim Laden der Haltestellen:', e);
+  }
 }
 
-function loadSonderansagen() {
-  // ✏️ Dateinamen (ohne .mp3) aus /audio/Hinweise eintragen
-  const sonderansagen = ["fahrt_auf_sicht", "wagen_defekt"];
-  sonderansagen.forEach(name => {
-    specialSelect.add(new Option(toLabel(name), name));
-  });
+// Lädt alle .mp3 aus audio/Hinweise per GitHub Contents API
+// (Schnellansagen einsteigen/zurueckbleiben/abfahrt werden ausgeschlossen)
+async function loadSonderansagen() {
+  const SCHNELLANSAGEN = ['einsteigen', 'zurueckbleiben', 'abfahrt'];
+  try {
+    const res = await fetch(GITHUB_API + 'audio/Hinweise');
+    const files = await res.json();
+    const sonder = files
+      .filter(f =>
+        f.type === 'file' &&
+        f.name.toLowerCase().endsWith('.mp3') &&
+        !SCHNELLANSAGEN.includes(f.name.replace(/\.mp3$/i, '').toLowerCase())
+      )
+      .map(f => f.name.replace(/\.mp3$/i, ''))
+      .sort((a, b) => toLabel(a).localeCompare(toLabel(b), 'de'));
+
+    specialSelect.innerHTML = '<option value="">(keine)</option>';
+    sonder.forEach(name => {
+      specialSelect.add(new Option(toLabel(name), name));
+    });
+  } catch (e) {
+    console.error('Fehler beim Laden der Sonderansagen:', e);
+  }
 }
 
 // ===== Via-Haltestellen (dynamisch, mehrere) =====
@@ -88,17 +116,12 @@ function getViaValues() {
 
 // ===== Audio: Preload & Sequenz =====
 
-/**
- * Lädt alle Audiodateien in den Speicher und spielt sie
- * danach der Reihe nach ab (flüssig, kein Nachladen).
- */
 function preloadAndPlay(files) {
   if (files.length === 0) return;
 
   const outputEl = document.getElementById('output');
   outputEl.textContent = 'Lade Ansage ...';
 
-  // Alle Dateien als Audio-Objekte vorladen
   const audios = files.map(src => {
     const a = new Audio();
     a.preload = 'auto';
@@ -106,7 +129,6 @@ function preloadAndPlay(files) {
     return a;
   });
 
-  // Warten bis alle canplaythrough-Events gefeuert haben
   let loaded = 0;
   const total = audios.length;
 
@@ -114,9 +136,7 @@ function preloadAndPlay(files) {
     loaded++;
     if (loaded >= total) {
       outputEl.textContent = 'Wiedergabe ...';
-      playSequence(audios, () => {
-        outputEl.textContent = '';
-      });
+      playSequence(audios, () => { outputEl.textContent = ''; });
     }
   }
 
@@ -125,7 +145,6 @@ function preloadAndPlay(files) {
       onReady();
     } else {
       a.addEventListener('canplaythrough', onReady, { once: true });
-      // Fallback: nach 3 Sekunden trotzdem starten
       a.addEventListener('error', onReady, { once: true });
     }
   });
@@ -133,21 +152,13 @@ function preloadAndPlay(files) {
 
 function playSequence(audios, onDone) {
   let index = 0;
-
   function next() {
-    if (index >= audios.length) {
-      if (onDone) onDone();
-      return;
-    }
+    if (index >= audios.length) { if (onDone) onDone(); return; }
     const a = audios[index];
     a.currentTime = 0;
     a.play().catch(() => {});
-    a.addEventListener('ended', () => {
-      index++;
-      next();
-    }, { once: true });
+    a.addEventListener('ended', () => { index++; next(); }, { once: true });
   }
-
   next();
 }
 
@@ -161,7 +172,6 @@ function generateAndPlay() {
   const viaList     = getViaValues();
   const special     = specialSelect.value;
 
-  // Linie oder "Zug"
   if (line) {
     files.push(`${basePath}Fragmente/linie.mp3`);
     files.push(`${basePath}Nummern/line_number_end/${line}.mp3`);
@@ -169,25 +179,22 @@ function generateAndPlay() {
     files.push(`${basePath}Fragmente/zug.mp3`);
   }
 
-  // Ziel
   if (destination) {
     files.push(`${basePath}Fragmente/nach.mp3`);
     files.push(`${basePath}Ziele/${destination}.mp3`);
   }
 
-  // Via-Haltestellen mit "und" vor der letzten
   if (viaList.length > 0) {
     files.push(`${basePath}Fragmente/ueber.mp3`);
     viaList.forEach((via, i) => {
       files.push(`${basePath}Ziele/${via}.mp3`);
-      // "und" zwischen vorletzter und letzter Station
+      // "und" zwischen den Stationen, falls vorhanden
       if (i < viaList.length - 1) {
         files.push(`${basePath}Fragmente/und.mp3`);
       }
     });
   }
 
-  // Sonderansage
   if (enableSpecial.checked && special) {
     files.push(`${basePath}Hinweise/${special}.mp3`);
   }
