@@ -11,7 +11,6 @@ const btnDownload       = document.getElementById('btn-download');
 const outputEl          = document.getElementById('output');
 
 let haltestellen = [];
-// Zuletzt geladene AudioBuffer-Sequenz für Download
 let lastAudioBuffers = [];
 let lastFiles = [];
 
@@ -70,23 +69,24 @@ async function loadSonderansagen() {
 
 async function loadGongs() {
   try {
-    const res = await fetch(GITHUB_API + 'audio/Fragmente');
+    const res = await fetch(GITHUB_API + 'audio/Gongs');
     const files = await res.json();
     const gongs = files
-      .filter(f =>
-        f.type === 'file' &&
-        f.name.toLowerCase().endsWith('.mp3') &&
-        f.name.toLowerCase().includes('gong')
-      )
-      .map(f => f.name.replace(/\.mp3$/i, ''));
-    gongs.forEach(name =>
-      gongSelect.add(new Option(toLabel(name), name))
-    );
-    // Falls kein Gong in Fragmente, auch Nummern/Ziele nicht durchsuchen
-    if (gongs.length === 0) {
+      .filter(f => f.type === 'file' && f.name.toLowerCase().endsWith('.mp3'))
+      .map(f => f.name.replace(/\.mp3$/i, ''))
+      .sort((a, b) => toLabel(a).localeCompare(toLabel(b), 'de'));
+    if (gongs.length > 0) {
+      gongSelect.innerHTML = '<option value="">(kein Gong)</option>';
+      gongs.forEach(name =>
+        gongSelect.add(new Option(toLabel(name), name))
+      );
+    } else {
       gongSelect.innerHTML = '<option value="">(kein Gong verfügbar)</option>';
     }
-  } catch (e) { console.error('Gongs:', e); }
+  } catch (e) {
+    console.error('Gongs:', e);
+    gongSelect.innerHTML = '<option value="">(kein Gong verfügbar)</option>';
+  }
 }
 
 // ===== Via-Haltestellen =====
@@ -136,8 +136,8 @@ function buildFileList() {
   const viaList     = getViaValues();
   const special     = specialSelect.value;
 
-  // Gong voranstellen
-  if (gong) files.push(`${basePath}Fragmente/${gong}.mp3`);
+  // Gong voranstellen (aus audio/Gongs/)
+  if (gong) files.push(`${basePath}Gongs/${gong}.mp3`);
 
   // Linie oder "Zug"
   if (line) {
@@ -154,17 +154,15 @@ function buildFileList() {
   }
 
   // Via: über A, B und C
-  // Muster: ueber A [ueber B ...] [und] ueber letzteStation
   if (viaList.length === 1) {
     files.push(`${basePath}Fragmente/ueber.mp3`);
     files.push(`${basePath}Ziele/${viaList[0]}.mp3`);
   } else if (viaList.length > 1) {
-    // Erste bis vorletzte ohne "und"
     for (let i = 0; i < viaList.length - 1; i++) {
       files.push(`${basePath}Fragmente/ueber.mp3`);
       files.push(`${basePath}Ziele/${viaList[i]}.mp3`);
     }
-    // Vor letzter Station "und" (nur wenn Datei existiert, sonst weglassen)
+    // "und" vor letzter Station (wird übersprungen falls Datei fehlt)
     files.push(`${basePath}Fragmente/und.mp3`);
     files.push(`${basePath}Ziele/${viaList[viaList.length - 1]}.mp3`);
   }
@@ -208,7 +206,6 @@ async function preloadAndPlay(files) {
     return;
   }
 
-  // Für Download speichern
   lastAudioBuffers = valid;
   lastFiles = files;
   btnDownload.disabled = false;
@@ -228,7 +225,6 @@ function playBufferSequence(audioCtx, buffers, onDone) {
     src.start(offset);
     offset += buf.duration;
   });
-  // Callback nach Ende der letzten Datei
   setTimeout(onDone, (offset - audioCtx.currentTime) * 1000);
 }
 
@@ -237,7 +233,6 @@ function playBufferSequence(audioCtx, buffers, onDone) {
 function downloadAnsage() {
   if (lastAudioBuffers.length === 0) return;
 
-  // Gesamt-Länge berechnen
   const sampleRate = lastAudioBuffers[0].sampleRate;
   const channels   = lastAudioBuffers[0].numberOfChannels;
   const totalLen   = lastAudioBuffers.reduce((s, b) => s + b.length, 0);
@@ -264,7 +259,6 @@ function downloadAnsage() {
   });
 }
 
-// Einfacher AudioBuffer -> WAV-Encoder
 function audioBufferToWav(buffer) {
   const numCh  = buffer.numberOfChannels;
   const sr     = buffer.sampleRate;
@@ -293,13 +287,12 @@ function audioBufferToWav(buffer) {
   writeStr(36, 'data');
   view.setUint32(40, dataSize, true);
 
-  // Interleaved PCM
-  let offset = 44;
+  let off = 44;
   for (let i = 0; i < len; i++) {
     for (let ch = 0; ch < numCh; ch++) {
       const sample = Math.max(-1, Math.min(1, buffer.getChannelData(ch)[i]));
-      view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
-      offset += 2;
+      view.setInt16(off, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+      off += 2;
     }
   }
   return wavBuf;
