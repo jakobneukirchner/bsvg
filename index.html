@@ -48,9 +48,9 @@
         <span class="card-header-title">Ansage generieren</span>
       </div>
 
-      <!-- Gong -->
+      <!-- Gong (vor Hauptansage) -->
       <div class="form-field">
-        <label class="form-label" for="gong">Gong</label>
+        <label class="form-label" for="gong">Gong (vor Ansage)</label>
         <div class="select-wrapper">
           <select id="gong" class="form-select">
             <option value="">(kein Gong)</option>
@@ -92,18 +92,22 @@
         </button>
       </div>
 
-      <div class="form-field form-field--row">
-        <label class="md-checkbox">
-          <input type="checkbox" id="enableSpecial">
-          <span class="md-checkbox-box"></span>
-          <span class="md-checkbox-label">Sonderansage hinzufügen</span>
-        </label>
+      <!-- Gong vor Sonderansage -->
+      <div class="form-field">
+        <label class="form-label" for="gong-special">Gong (vor Sonderansage)</label>
+        <div class="select-wrapper">
+          <select id="gong-special" class="form-select">
+            <option value="">(kein Gong)</option>
+          </select>
+          <span class="material-icons select-arrow">expand_more</span>
+        </div>
       </div>
 
+      <!-- Sonderansage – immer sichtbar, (keine) als Standard -->
       <div class="form-field">
         <label class="form-label" for="special">Sonderansage</label>
         <div class="select-wrapper">
-          <select id="special" class="form-select" disabled></select>
+          <select id="special" class="form-select"></select>
           <span class="material-icons select-arrow">expand_more</span>
         </div>
       </div>
@@ -129,17 +133,16 @@
         <span class="card-header-title">Ansage herunterladen</span>
       </div>
       <div class="download-section">
-        <p class="download-info">Generiere zuerst eine Ansage, dann kannst du sie hier als MP3 herunterladen.</p>
+        <p class="download-info">Generiere zuerst eine Ansage, dann kannst du sie hier als WAV herunterladen.</p>
         <button class="btn-download" id="btn-download" disabled onclick="downloadAnsage()">
           <span class="material-icons">download</span>
-          Als MP3 herunterladen
+          Als WAV herunterladen
         </button>
       </div>
     </div>
 
   </div>
 
-  <audio id="audioPlayer"></audio>
   <script src="sript.js"></script>
 </body>
 </html>

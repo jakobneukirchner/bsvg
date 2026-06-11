@@ -1,17 +1,19 @@
 const basePath = 'audio/';
 const GITHUB_API = 'https://api.github.com/repos/jakobneukirchner/bsvg/contents/';
 
-const destinationSelect = document.getElementById('destination');
-const specialSelect     = document.getElementById('special');
-const gongSelect        = document.getElementById('gong');
-const enableSpecial     = document.getElementById('enableSpecial');
-const viaContainer      = document.getElementById('via-container');
-const btnAddVia         = document.getElementById('btn-add-via');
-const btnDownload       = document.getElementById('btn-download');
-const outputEl          = document.getElementById('output');
+const destinationSelect  = document.getElementById('destination');
+const specialSelect      = document.getElementById('special');
+const gongSelect         = document.getElementById('gong');
+const gongSpecialSelect  = document.getElementById('gong-special');
+const viaContainer       = document.getElementById('via-container');
+const btnAddVia          = document.getElementById('btn-add-via');
+const btnDownload        = document.getElementById('btn-download');
+const outputEl           = document.getElementById('output');
 
 let haltestellen = [];
 let lastAudioBuffers = [];
+
+// ===== Hilfsfunktionen =====
 
 function isAudio(name) {
   return /\.(mp3|wav|ogg|aac)$/i.test(name);
@@ -25,9 +27,7 @@ function toLabel(name) {
     .trim();
 }
 
-enableSpecial.addEventListener('change', () => {
-  specialSelect.disabled = !enableSpecial.checked;
-});
+// ===== Init =====
 
 window.onload = async () => {
   btnAddVia.addEventListener('click', addViaRow);
@@ -64,6 +64,7 @@ async function loadSonderansagen() {
       })
       .map(f => f.name)
       .sort((a, b) => toLabel(a).localeCompare(toLabel(b), 'de'));
+    // Immer sichtbar, (keine) als erste Option
     specialSelect.innerHTML = '<option value="">(keine)</option>';
     sonder.forEach(name =>
       specialSelect.add(new Option(toLabel(name), name))
@@ -79,16 +80,18 @@ async function loadGongs() {
       .filter(f => f.type === 'file' && isAudio(f.name))
       .map(f => f.name)
       .sort((a, b) => toLabel(a).localeCompare(toLabel(b), 'de'));
-    if (gongs.length > 0) {
-      gongSelect.innerHTML = '<option value="">(kein Gong)</option>';
-      gongs.forEach(name =>
-        gongSelect.add(new Option(toLabel(name), name))
-      );
-    } else {
-      gongSelect.innerHTML = '<option value="">(kein Gong verf\u00fcgbar)</option>';
-    }
+
+    const emptyOpt = gongs.length > 0 ? '(kein Gong)' : '(kein Gong verf\u00fcgbar)';
+
+    // Beide Gong-Selects befüllen
+    [gongSelect, gongSpecialSelect].forEach(sel => {
+      sel.innerHTML = `<option value="">${emptyOpt}</option>`;
+      gongs.forEach(name => sel.add(new Option(toLabel(name), name)));
+    });
   } catch (e) {
-    gongSelect.innerHTML = '<option value="">(kein Gong verf\u00fcgbar)</option>';
+    [gongSelect, gongSpecialSelect].forEach(sel => {
+      sel.innerHTML = '<option value="">(kein Gong verf\u00fcgbar)</option>';
+    });
   }
 }
 
@@ -130,18 +133,20 @@ function getViaValues() {
 }
 
 // ===== Ansage-Dateiliste aufbauen =====
-// Werte in Selects sind jetzt volle Dateinamen inkl. Endung (z.B. "ne.mp3", "gong+....wav")
 
 function buildFileList() {
   const files = [];
   const gong        = gongSelect.value;
+  const gongSpecial = gongSpecialSelect.value;
   const line        = document.getElementById('line').value;
   const destination = destinationSelect.value;
   const viaList     = getViaValues();
   const special     = specialSelect.value;
 
-  if (gong)        files.push(`${basePath}Gongs/${gong}`);
+  // Gong vor Hauptansage
+  if (gong) files.push(`${basePath}Gongs/${gong}`);
 
+  // Linie oder "Zug"
   if (line) {
     files.push(`${basePath}Fragmente/linie.mp3`);
     files.push(`${basePath}Nummern/line_number_end/${line}.mp3`);
@@ -149,11 +154,13 @@ function buildFileList() {
     files.push(`${basePath}Fragmente/zug.mp3`);
   }
 
+  // Ziel
   if (destination) {
     files.push(`${basePath}Fragmente/nach.mp3`);
     files.push(`${basePath}Ziele/${destination}`);
   }
 
+  // Via: über A [, B] und C
   if (viaList.length === 1) {
     files.push(`${basePath}Fragmente/ueber.mp3`);
     files.push(`${basePath}Ziele/${viaList[0]}`);
@@ -166,14 +173,16 @@ function buildFileList() {
     files.push(`${basePath}Ziele/${viaList[viaList.length - 1]}`);
   }
 
-  if (enableSpecial.checked && special) {
+  // Gong vor Sonderansage + Sonderansage
+  if (special) {
+    if (gongSpecial) files.push(`${basePath}Gongs/${gongSpecial}`);
     files.push(`${basePath}Hinweise/${special}`);
   }
 
   return files;
 }
 
-// ===== Audio: Vollst\u00e4ndiges Preload per fetch + AudioContext =====
+// ===== Audio: Vollständiges Preload per fetch + AudioContext =====
 
 async function fetchAllBuffers(files, audioCtx) {
   return Promise.all(
@@ -183,7 +192,7 @@ async function fetchAllBuffers(files, audioCtx) {
         const arrayBuf = await res.arrayBuffer();
         return await audioCtx.decodeAudioData(arrayBuf);
       } catch (e) {
-        console.warn('Datei nicht ladbar, \u00fcbersprungen:', src, e);
+        console.warn('Datei nicht ladbar, übersprungen:', src, e);
         return null;
       }
     })
@@ -225,7 +234,7 @@ function playBufferSequence(audioCtx, buffers, onDone) {
   setTimeout(onDone, (offset - audioCtx.currentTime) * 1000);
 }
 
-// ===== Download: Buffers zu WAV zusammenf\u00fcgen =====
+// ===== Download =====
 
 function downloadAnsage() {
   if (lastAudioBuffers.length === 0) return;
@@ -257,54 +266,45 @@ function downloadAnsage() {
 }
 
 function audioBufferToWav(buffer) {
-  const numCh  = buffer.numberOfChannels;
-  const sr     = buffer.sampleRate;
-  const len    = buffer.length;
-  const bitsPS = 16;
-  const blockAlign = numCh * (bitsPS / 8);
-  const byteRate   = sr * blockAlign;
-  const dataSize   = len * blockAlign;
-  const wavBuf     = new ArrayBuffer(44 + dataSize);
-  const view       = new DataView(wavBuf);
-
-  function writeStr(off, str) {
-    for (let i = 0; i < str.length; i++) view.setUint8(off + i, str.charCodeAt(i));
-  }
-  writeStr(0, 'RIFF');
-  view.setUint32(4,  36 + dataSize, true);
-  writeStr(8, 'WAVE');
-  writeStr(12, 'fmt ');
-  view.setUint32(16, 16, true);
-  view.setUint16(20, 1,  true);
-  view.setUint16(22, numCh, true);
-  view.setUint32(24, sr,  true);
-  view.setUint32(28, byteRate, true);
-  view.setUint16(32, blockAlign, true);
-  view.setUint16(34, bitsPS, true);
-  writeStr(36, 'data');
-  view.setUint32(40, dataSize, true);
-
+  const numCh = buffer.numberOfChannels;
+  const sr    = buffer.sampleRate;
+  const len   = buffer.length;
+  const bPS   = 16;
+  const bAlign = numCh * (bPS / 8);
+  const bRate  = sr * bAlign;
+  const dSize  = len * bAlign;
+  const wavBuf = new ArrayBuffer(44 + dSize);
+  const view   = new DataView(wavBuf);
+  function ws(o, s) { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); }
+  ws(0,'RIFF'); view.setUint32(4, 36+dSize, true); ws(8,'WAVE'); ws(12,'fmt ');
+  view.setUint32(16,16,true); view.setUint16(20,1,true); view.setUint16(22,numCh,true);
+  view.setUint32(24,sr,true); view.setUint32(28,bRate,true); view.setUint16(32,bAlign,true);
+  view.setUint16(34,bPS,true); ws(36,'data'); view.setUint32(40,dSize,true);
   let off = 44;
   for (let i = 0; i < len; i++) {
     for (let ch = 0; ch < numCh; ch++) {
-      const sample = Math.max(-1, Math.min(1, buffer.getChannelData(ch)[i]));
-      view.setInt16(off, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+      const s = Math.max(-1, Math.min(1, buffer.getChannelData(ch)[i]));
+      view.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
       off += 2;
     }
   }
   return wavBuf;
 }
 
-// ===== \u00d6ffentliche Funktionen =====
+// ===== Öffentliche Funktionen =====
 
 function generateAndPlay() {
   preloadAndPlay(buildFileList());
 }
 
 function playSpecialOnly() {
-  const special = specialSelect.value;
-  if (!special) { alert('Bitte eine Sonderansage w\u00e4hlen'); return; }
-  preloadAndPlay([`${basePath}Hinweise/${special}`]);
+  const special     = specialSelect.value;
+  const gongSpecial = gongSpecialSelect.value;
+  if (!special) { alert('Bitte eine Sonderansage wählen'); return; }
+  const files = [];
+  if (gongSpecial) files.push(`${basePath}Gongs/${gongSpecial}`);
+  files.push(`${basePath}Hinweise/${special}`);
+  preloadAndPlay(files);
 }
 
 function playQuick(src) {
